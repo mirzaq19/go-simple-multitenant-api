@@ -1,7 +1,10 @@
 package web
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type APIResponse struct {
@@ -20,6 +23,14 @@ func SuccesResponse(ctx *gin.Context, code int, message string, data any) {
 		Code:    code,
 		Message: message,
 		Data:    data,
+	})
+}
+
+func ValidationErrorResponse(ctx *gin.Context, validationMessage validator.ValidationErrorsTranslations) {
+	ctx.JSON(http.StatusUnprocessableEntity, APIResponse{
+		Code:    http.StatusUnprocessableEntity,
+		Message: "VALIDATION_ERROR",
+		Error:   validationMessage,
 	})
 }
 

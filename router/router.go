@@ -3,12 +3,12 @@ package router
 import (
 	"multi-tenant/app"
 	"multi-tenant/controller"
+	"multi-tenant/exception"
 	"multi-tenant/middleware"
 	"multi-tenant/repository"
 	"multi-tenant/service"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 func NewRouter() *gin.Engine {
@@ -16,7 +16,7 @@ func NewRouter() *gin.Engine {
 	router.Use(middleware.TenantMiddleware(), middleware.RecoveryMiddleware())
 
 	dbManager := app.NewTenantDBManager(app.TenantsDB)
-	validate := validator.New()
+	validate := exception.NewValidatior()
 
 	categoryRepository := repository.NewCategoryRepository()
 	categoryService := service.NewCategoryService(dbManager, categoryRepository, validate)
