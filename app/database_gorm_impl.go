@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"log"
 	"multi-tenant/exception"
 	"sync"
 	"time"
@@ -44,26 +43,30 @@ func NewTenantDBManager(tenants map[string]TenantDB) TenantDBManager {
 }
 
 func (t *TenantDBManagerImpl) GetConnection(tenantName string) (TenantDBInstance, error) {
-	conn, ok := t.connections.Load(tenantName)
-	if !ok {
-		return nil, exception.NewInternalServerError(500, "Database connection not found:"+tenantName)
+	if conn, ok := t.connections.Load(tenantName); ok {
+		return conn.(TenantDBInstance), nil
 	}
 
-	return conn.(TenantDBInstance), nil
+	tenantDB := TenantsDB[tenantName]
+	if newConn := t.OpenConnection(tenantDB); newConn != nil {
+		return newConn, nil
+	}
+
+	return nil, exception.NewInternalServerError(500, "Failed connect to database:"+tenantName)
 }
 
-func (t *TenantDBManagerImpl) OpenConnection(tenant TenantDB) {
+func (t *TenantDBManagerImpl) OpenConnection(tenant TenantDB) TenantDBInstance {
 	db, err := gorm.Open(mysql.Open(tenant.DSN), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("❌ Failed to connect to tenant %s with DSN %s: %v", tenant.Name, tenant.DSN, err)
-		return
+		fmt.Printf("❌ Failed to connect to tenant %s with DSN %s: %v", tenant.Name, tenant.DSN, err)
+		return nil
 	}
 
 	// Tune the connection pool
 	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("❌ Failed to get SQL DB for tenant %s: %v", tenant.Name, err)
-		return
+		fmt.Printf("❌ Failed to get SQL DB for tenant %s: %v", tenant.Name, err)
+		return nil
 	}
 
 	// Example tuning — adjust depending on your workload and DB capacity
@@ -78,4 +81,6 @@ func (t *TenantDBManagerImpl) OpenConnection(tenant TenantDB) {
 
 	// Store the pool for future requests
 	t.connections.Store(tenant.Name, newDBInstance)
+
+	return newDBInstance
 }

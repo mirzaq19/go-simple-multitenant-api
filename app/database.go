@@ -7,5 +7,5 @@ type TenantDBInstance interface {
 
 type TenantDBManager interface {
 	GetConnection(tenantId string) (TenantDBInstance, error)
-	OpenConnection(tenant TenantDB)
+	OpenConnection(tenant TenantDB) TenantDBInstance
 }
