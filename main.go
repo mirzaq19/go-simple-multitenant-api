@@ -9,5 +9,5 @@ import (
 func main() {
 	router := router.NewRouter()
 
-	router.Run(":3000")
+	router.Run(":8080")
 }

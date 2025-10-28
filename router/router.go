@@ -13,7 +13,11 @@ import (
 
 func NewRouter() *gin.Engine {
 	router := gin.Default()
-	router.Use(middleware.TenantMiddleware(), middleware.RecoveryMiddleware())
+	router.Use(
+		middleware.TenantMiddleware(),
+		middleware.RecoveryMiddleware(),
+		// middleware.SentryMiddleware(),
+	)
 
 	dbManager := app.NewTenantDBManager(app.TenantsDB)
 	validate := exception.NewValidatior()
