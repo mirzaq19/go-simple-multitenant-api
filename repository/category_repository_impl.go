@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"multi-tenant/app"
 	"multi-tenant/helper"
 	"multi-tenant/model/domain"
 
@@ -15,27 +16,31 @@ func NewCategoryRepository() CategoryRepository {
 	return &CategoryRepositoryImpl{}
 }
 
-func (r *CategoryRepositoryImpl) Create(tx *gorm.DB, category domain.Category) domain.Category {
+func (r *CategoryRepositoryImpl) Create(db app.TenantDBInstance, category domain.Category) domain.Category {
+	tx := db.GetInstance().(*gorm.DB)
 	err := tx.Create(&category).Error
 	helper.PanicIfError(err)
 
 	return category
 }
 
-func (r *CategoryRepositoryImpl) Update(tx *gorm.DB, category domain.Category) domain.Category {
+func (r *CategoryRepositoryImpl) Update(db app.TenantDBInstance, category domain.Category) domain.Category {
+	tx := db.GetInstance().(*gorm.DB)
 	err := tx.Save(&category).Error
 	helper.PanicIfError(err)
 
 	return category
 }
 
-func (r *CategoryRepositoryImpl) Delete(tx *gorm.DB, id uint) {
+func (r *CategoryRepositoryImpl) Delete(db app.TenantDBInstance, id uint) {
+	tx := db.GetInstance().(*gorm.DB)
 	err := tx.Delete(&domain.Category{}, id).Error
 	helper.PanicIfError(err)
 }
 
-func (r *CategoryRepositoryImpl) FindById(tx *gorm.DB, id uint) (domain.Category, error) {
+func (r *CategoryRepositoryImpl) FindById(db app.TenantDBInstance, id uint) (domain.Category, error) {
 	category := domain.Category{}
+	tx := db.GetInstance().(*gorm.DB)
 	err := tx.First(&category, id).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -47,9 +52,10 @@ func (r *CategoryRepositoryImpl) FindById(tx *gorm.DB, id uint) (domain.Category
 	return category, nil
 }
 
-func (r *CategoryRepositoryImpl) FindAll(tx *gorm.DB) []domain.Category {
+func (r *CategoryRepositoryImpl) FindAll(db app.TenantDBInstance) []domain.Category {
 	categories := []domain.Category{}
 
+	tx := db.GetInstance().(*gorm.DB)
 	err := tx.Find(&categories).Error
 	helper.PanicIfError(err)
 	return categories

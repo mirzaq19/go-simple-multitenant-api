@@ -11,6 +11,22 @@ import (
 	"gorm.io/gorm"
 )
 
+type TenantDBInstanceImpl struct {
+	db *gorm.DB
+}
+
+func NewTenantDBInstance(db *gorm.DB) TenantDBInstance {
+	return &TenantDBInstanceImpl{db}
+}
+
+func (tdbi *TenantDBInstanceImpl) GetInstance() any {
+	return tdbi.db
+}
+
+func (tdbi *TenantDBInstanceImpl) GetTransactionInstance() any {
+	return tdbi.db.Begin()
+}
+
 type TenantDBManagerImpl struct {
 	connections *sync.Map
 }
@@ -27,13 +43,13 @@ func NewTenantDBManager(tenants map[string]TenantDB) TenantDBManager {
 	return tenantDBManager
 }
 
-func (t *TenantDBManagerImpl) GetConnection(tenantName string) (*gorm.DB, error) {
+func (t *TenantDBManagerImpl) GetConnection(tenantName string) (TenantDBInstance, error) {
 	conn, ok := t.connections.Load(tenantName)
 	if !ok {
 		return nil, exception.NewInternalServerError(500, "Database connection not found:"+tenantName)
 	}
 
-	return conn.(*gorm.DB), nil
+	return conn.(TenantDBInstance), nil
 }
 
 func (t *TenantDBManagerImpl) OpenConnection(tenant TenantDB) {
@@ -58,6 +74,8 @@ func (t *TenantDBManagerImpl) OpenConnection(tenant TenantDB) {
 
 	fmt.Printf("✅ Connected to database for tenant %s with pool configured\n", tenant.Name)
 
+	newDBInstance := NewTenantDBInstance(db)
+
 	// Store the pool for future requests
-	t.connections.Store(tenant.Name, db)
+	t.connections.Store(tenant.Name, newDBInstance)
 }

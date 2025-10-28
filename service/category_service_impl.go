@@ -30,7 +30,7 @@ func NewCategoryService(
 	}
 }
 
-func (s *CategoryServiceImpl) GetDB(tenantName string) *gorm.DB {
+func (s *CategoryServiceImpl) GetDB(tenantName string) app.TenantDBInstance {
 	db, err := s.DBManager.GetConnection(tenantName)
 	helper.PanicIfError(err)
 
@@ -41,15 +41,15 @@ func (s *CategoryServiceImpl) Create(tenantName string, request web.CategoryCrea
 	err := s.Validate.Struct(request)
 	helper.PanicIfError(err)
 
-	db := s.GetDB(tenantName)
-	tx := db.Begin()
+	tx := s.GetDB(tenantName).GetTransactionInstance().(*gorm.DB)
+	db := app.NewTenantDBInstance(tx)
 	defer helper.CommitOrRollback(tx)
 
 	category := domain.Category{
 		Name: request.Name,
 	}
 
-	category = s.CategoryRepository.Create(tx, category)
+	category = s.CategoryRepository.Create(db, category)
 	return helper.ToCategoryResponse(category)
 }
 
@@ -57,8 +57,8 @@ func (s *CategoryServiceImpl) Update(tenantName string, request web.CategoryUpda
 	err := s.Validate.Struct(request)
 	helper.PanicIfError(err)
 
-	db := s.GetDB(tenantName)
-	tx := db.Begin()
+	tx := s.GetDB(tenantName).GetTransactionInstance().(*gorm.DB)
+	db := app.NewTenantDBInstance(tx)
 	defer helper.CommitOrRollback(tx)
 
 	category := domain.Category{
@@ -66,28 +66,27 @@ func (s *CategoryServiceImpl) Update(tenantName string, request web.CategoryUpda
 		Name: request.Name,
 	}
 
-	category = s.CategoryRepository.Update(tx, category)
+	category = s.CategoryRepository.Update(db, category)
 	return helper.ToCategoryResponse(category)
 }
 
 func (s *CategoryServiceImpl) Delete(tenantName string, id uint) {
-	db := s.GetDB(tenantName)
-	tx := db.Begin()
+	tx := s.GetDB(tenantName).GetTransactionInstance().(*gorm.DB)
+	db := app.NewTenantDBInstance(tx)
 	defer helper.CommitOrRollback(tx)
 
-	category, err := s.CategoryRepository.FindById(tx, id)
+	category, err := s.CategoryRepository.FindById(db, id)
 	if err != nil {
 		panic(exception.NewNotFoundError(404001, "Category is not found"))
 	}
 
-	s.CategoryRepository.Delete(tx, category.ID)
+	s.CategoryRepository.Delete(db, category.ID)
 }
 
 func (s *CategoryServiceImpl) FindById(tenantName string, id uint) web.CategoryResponse {
 	db := s.GetDB(tenantName)
-	tx := db.Begin()
 
-	category, err := s.CategoryRepository.FindById(tx, id)
+	category, err := s.CategoryRepository.FindById(db, id)
 	if err != nil {
 		panic(exception.NewNotFoundError(404002, "Category is not found"))
 	}
@@ -97,8 +96,7 @@ func (s *CategoryServiceImpl) FindById(tenantName string, id uint) web.CategoryR
 
 func (s *CategoryServiceImpl) FindAll(tenantName string) []web.CategoryResponse {
 	db := s.GetDB(tenantName)
-	tx := db.Begin()
 
-	categories := s.CategoryRepository.FindAll(tx)
+	categories := s.CategoryRepository.FindAll(db)
 	return helper.ToCategoryResponses(categories)
 }

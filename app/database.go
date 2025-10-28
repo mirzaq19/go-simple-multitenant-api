@@ -1,10 +1,11 @@
 package app
 
-import (
-	"gorm.io/gorm"
-)
+type TenantDBInstance interface {
+	GetInstance() any
+	GetTransactionInstance() any
+}
 
 type TenantDBManager interface {
-	GetConnection(tenantId string) (*gorm.DB, error)
+	GetConnection(tenantId string) (TenantDBInstance, error)
 	OpenConnection(tenant TenantDB)
 }
